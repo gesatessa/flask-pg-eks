@@ -43,4 +43,4 @@ COPY . .
 EXPOSE 5000
 
 # Run with Gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "analytics.app:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]

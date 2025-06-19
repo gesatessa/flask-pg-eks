@@ -1,4 +1,13 @@
-# k8s/postgres.yaml (refactored portion)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -33,3 +42,24 @@ spec:
       - name: init-scripts
         configMap:
           name: postgres-init-scripts
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: ebs-sc
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - protocol: TCP
+    port: 5432

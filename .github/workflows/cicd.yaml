@@ -11,49 +11,67 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  build:
+  lint:
+    name: Lint Python Code
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install flake8 and requirements
+        run: |
+          pip install flake8 -r analytics/requirements.txt
+
+      - name: Run flake8
+        run: flake8 analytics/
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install test dependencies
+        run: pip install -r analytics/requirements.txt
+
+      - name: Run tests
+        run: |
+          echo "No tests defined yet"
+          # e.g., pytest analytics/tests/
+
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test]  # Ensures this job runs after lint and test
     permissions:
       id-token: write
       contents: read
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Run linter (flake8)
-      run: |
-        pip install flake8
-        #flake8 .
-
-    - name: Run tests (if any)
-      run: |
-        # Replace with your test command or remove if none
-        echo "No tests defined yet"
-
-    - name: Configure AWS credentials (OIDC)
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Login to Amazon ECR
-      uses: aws-actions/amazon-ecr-login@v2
-
-    - name: Build, tag, and push Docker image to ECR
-      run: |
-        docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
-        docker tag $ECR_REPOSITORY:$IMAGE_TAG \
-          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push \
-          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Build, tag, and push Docker image to ECR
+        run: |
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG -f analytics/Dockerfile analytics
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
