@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-image-access
+  namespace: default
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::717546795560:role/ArgoCDECRRole

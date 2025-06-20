@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::717546795560:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/1DB6BA2BBB0696F76C1DF1F5563524D7"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.us-east-1.amazonaws.com/id/1DB6BA2BBB0696F76C1DF1F5563524D7:sub": "system:serviceaccount:default:argocd-image-access"
+        }
+      }
+    }
+  ]
+}
